@@ -54,12 +54,26 @@
   <section class="post-item">
     <a class="post-item-title" href="/2024/11/26/%E5%A4%8D%E7%8E%B0-DASCTF-2024%E9%87%91%E7%A7%8B%E5%8D%81%E6%9C%88/">[复现]DASCTF_2024金秋十月</a>
     <div class="post-item-summary">
-      
+      [复现]DASCTF 2024金秋十月｜秋意浓，战火燃，码上见真章PWNsixbytes主要代码就是将flag先读到bss段上来
+  
+
+可以写入6字节的shellcode来执行
+  
+
+  
+
+在后面会将flag作为第一个参数来执行shellcode，我们的思路就是尽量少的去使用汇编语言来缩段shellcode的长度。第一想法是使用puts的系统调用来将flag去带出来。
+  
+
+保护全开对我们没什么影响，shellcode所在的地方已经给了rwx的权限
+可是，，，，，被b
       <a class="read-more" href="/2024/11/26/%E5%A4%8D%E7%8E%B0-DASCTF-2024%E9%87%91%E7%A7%8B%E5%8D%81%E6%9C%88/"> ... </a>
     </div>
     <div class="post-item-extra">
       <div class="date">2024.11.26</div>
       <div class="tags">
+        
+        <div class="tag-item">-ctf -复现</div>
         
       </div>
     </div>
