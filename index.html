@@ -52,6 +52,27 @@
     <div class="post-list">
   
   <section class="post-item">
+    <a class="post-item-title" href="/2024/11/27/ret2text/">ret2text</a>
+    <div class="post-item-summary">
+      很好理解的一个攻击
+条件：1、程序存在栈溢出至少溢出0x10字节（32位至少溢出0x8个字节）。
+​			2、程序中存在后门，如：system(“&#x2F;bin&#x2F;sh”);
+这里我们写一个demo测试一下
+环境：gcc (Ubuntu 9.4.0-1ubuntu1~20.04.2) 9.4.0
+123456789101112#include &lt;stdio.h&gt;void backdoor()&#123;	system(&quot;/bin/sh&quo
+      <a class="read-more" href="/2024/11/27/ret2text/"> ... </a>
+    </div>
+    <div class="post-item-extra">
+      <div class="date">2024.11.27</div>
+      <div class="tags">
+        
+        <div class="tag-item">pwn</div>
+        
+      </div>
+    </div>
+  </section>
+  
+  <section class="post-item">
     <a class="post-item-title" href="/2024/11/26/RC4%E5%8A%A0%E5%AF%86%E7%AE%97%E6%B3%95%E5%AD%A6%E4%B9%A0/">RC4加密算法学习</a>
     <div class="post-item-summary">
       算法简介​		RC4算法是一种对称加密算法，加密和解密使用的是相同的加密算法，加密的密钥能够从解密密钥中推算出来，同时解密密钥也可以从加密密钥中推算出来。rc4算法不是对明文进行分组处理，而是字节流的方式一次加密明文中的每一个字节，解密的时候也是逐字节的进行。 由于异或运算的对合性，RC4加密解密使用同一套算法。 

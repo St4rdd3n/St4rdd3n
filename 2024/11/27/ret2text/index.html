@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport" />
+  <title>
+    
+    ret2text 丨
+    
+
+    St4rdd3n&#39;s blog
+  </title>
+
+  
+  <link rel="shortcut icon" href="/favicon.ico">
+  
+
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+  
+  <link id="theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.css">
+  <script src="https://unpkg.com/@highlightjs/cdn-assets@11.9.0/highlight.min.js"></script>
+  
+
+  <!-- 字体 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">
+
+  
+<link rel="stylesheet" href="/css/root.css">
+
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+<link rel="stylesheet" href="/css/post.css">
+
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+<body>
+  <header class="header">
+  <section class="header-container">
+    <a class="logo" href="/">St4rdd3n&#39;s blog</a>
+    <ul class="nav">
+      
+      <li><a href="/tags">tags</a></li>
+      
+      <li><a href="/archives">archives</a></li>
+      
+      <li><a href="/about">about</a></li>
+      
+    </ul>
+  </section>
+</header>
+  <main class="main">
+    <article class="post">
+  
+  <div class="post-title">ret2text</div>
+  <div class="post-meta">
+    <div class="date">2024 November 27th</div>
+    <div class="tags">
+      
+      <div class="tag-item">pwn</div>
+      
+    </div>
+  </div>
+  
+
+  <main class="post-content"><p>很好理解的一个攻击</p>
+<p>条件：1、程序存在栈溢出至少溢出0x10字节（32位至少溢出0x8个字节）。</p>
+<p>​			2、程序中存在后门，如：system(“&#x2F;bin&#x2F;sh”);</p>
+<p>这里我们写一个demo测试一下</p>
+<p>环境：gcc (Ubuntu 9.4.0-1ubuntu1~20.04.2) 9.4.0</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">backdoor</span><span class="params">()</span>&#123;</span><br><span class="line">	system(<span class="string">&quot;/bin/sh&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span>&#123;</span><br><span class="line">	<span class="type">char</span> buf[<span class="number">0x10</span>];</span><br><span class="line">	<span class="built_in">puts</span>(<span class="string">&quot;plz input your name:&quot;</span>);</span><br><span class="line">	read(<span class="number">0</span>,buf,<span class="number">0x40</span>);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>编译命令：gcc -no-pie -fno-stack-protector 1.c</p>
+<p> <img src="https://www.helloimg.com/i/2024/11/27/674672a6cc103.png" alt="img"> </p>
+<p>这时候将生成的elf文件进行反编译，查看代码。</p>
+<p><img src="https://www.helloimg.com/i/2024/11/27/674672c3ecc82.png" alt="img"> </p>
+<p>这里看到buf的大小是0x10也就是16，而我们可以写入的长度是0x40，这样就可以造成一个溢出。</p>
+<p>这里要先介绍一下stack的结构</p>
+<p> <img src="https://www.helloimg.com/i/2024/11/27/674672ee38b0a.png" alt="img"> </p>
+<p>buf的大小是0x10（这里一个单元格为0x8的大小，所以buf占两个单元格），在buf下是rbp的位置，也就是栈底寄存器的位置，占0x8。再往下是占位0x8大小的ret(返回地址)，ret这个地方控制了当前函数执行过后所返回的地址，所以如果劫持到ret地址，就可以将程序的执行流执行想要执行的地方。在pwn中我们最终目的是getshell，也就是执行到system(“&#x2F;bin&#x2F;sh”)，思路就是将ret地址修改成system(“&#x2F;bin&#x2F;sh”)的函数地址。</p>
+<p>这里rbp+ret是0x10大小，所以上面条件中我们说程序存在栈溢出至少溢出0x10字节。</p>
+<p>这里我们是写了system(“&#x2F;bin&#x2F;sh”)的，所以我们只需要找到函数的地址。</p>
+<p> <img src="https://www.helloimg.com/i/2024/11/27/6746731619c40.png" alt="img"> </p>
+<p>地址为0x40057b</p>
+<p> <img src="https://www.helloimg.com/i/2024/11/27/674673393c9ab.png" alt="img"> </p>
+<p>也就是说我们只需要溢出将ret覆盖成0x40057b就可以getshell</p>
+<p>写入之后我们发现rbp中已经被修改成了backdoor函数</p>
+<p><img src="https://www.helloimg.com/i/2024/11/27/6746749abdcb0.png" alt="img"> </p>
+<p>在栈回溯中也能看到体现</p>
+<p> <img src="https://www.helloimg.com/i/2024/11/27/674674b659823.png" alt="img"> </p>
+<p>通过动调往下看，也可以看到这里执行到了system(“&#x2F;bin&#x2F;sh”)</p>
+<p><img src="https://www.helloimg.com/i/2024/11/27/674674e28676d.png" alt="img"> </p>
+<p>成功getshell</p>
+<p><img src="https://www.helloimg.com/i/2024/11/27/674674fec977d.png" alt="img"> </p>
+</main>
+
+</article>
+
+
+<script src="/js/highlight.js"></script>
+
+  </main>
+  <footer class="footer">
+  
+  <span>Copyright © St4rdd3n</span>
+  
+</footer>
+  
+<script src="/js/theme.js"></script>
+
+</body>
+
+</html>
